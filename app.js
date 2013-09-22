@@ -73,7 +73,6 @@ var queryByGeo = function(res, params) {
   });
 }
 
-
 app.get('/query/geo', function(req, res) {
   var _url = url.parse(req.url, true);
   var query = _url.query;
@@ -148,6 +147,45 @@ app.get('/query/bound', function(req, res) {
     return;
   }
   queryByBound(res, query);
+});
+
+var queryByTitle= function(res, params) {
+  var limit = params.limit || 50;
+
+  var connStr = "postgres://localhost/imdb";
+  pg.connect(connStr, function(err, client, done) {
+    if(err) {
+      console.error('could not connect to postgres', err);
+      res.json({status: 'ERROR', description: 'cannot connect to database'});
+      return;
+    }
+    var queryStr = "SELECT geo_id, loc_id, raw_address AS address, address_info, title, year, votes*rating AS popular, geo AS lnglat " +
+                   "FROM huge_join " +
+                   "WHERE geo IS NOT NULL " +
+                   "AND title ILIKE '%" + params.title +"%' " +
+                   "ORDER BY popular DESC LIMIT "+ limit +";";
+    console.log(queryStr);
+    client.query(queryStr, [], function(err, result) {
+      if(err) {
+        console.error('error running query', err);
+        res.json({status: 'ERROR', description: 'query error'});
+        return;
+      }
+      done();
+      res.json({status: 'OK', results: result.rows});
+    });
+  });
+}
+
+app.get('/query/title', function(req, res) {
+  var _url = url.parse(req.url, true);
+  var query = _url.query;
+
+  if ( typeof query.title === 'undefined' ) {
+    res.json({status: 'ERROR', description: 'missing title'});
+    return;
+  }
+  queryByTitle(res, query);
 });
 
 http.createServer(app).listen(app.get('port'), function(){

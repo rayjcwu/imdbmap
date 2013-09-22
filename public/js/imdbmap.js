@@ -14,7 +14,59 @@ var imdbmap = {
     imdbmap.map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
 
     $('#location_search_btn').on('click', function(){
+      $("#title_search_box").val("");
       imdbmap.queryByBound(imdbmap.buildInverseMap);
+    });
+    
+    $("#title_search_box").keypress(function(e){
+      if (e.which === 13) {
+        imdbmap.queryByTitle(imdbmap.buildInverseMap);
+      }
+    });
+  },
+
+  queryByTitle: function(callback) {
+    var params = {title: $("#title_search_box").val() };
+
+    $.get("/query/title?" + $.param(params), function (data){
+      if (data.status === 'ERROR') {
+        console.error(data.description);
+        return;
+      }
+
+      if (data.status === 'OK' && data.results.length > 0) {
+        console.log("found " + data.results.length + " records");
+
+        var minlng =  180.0;
+        var maxlng = -180.0;
+        var minlat =   90.0;
+        var maxlat =  -90.0;
+
+        for (var i = 0; i < data.results.length; i++ ) {
+          var lnglat = data.results[i].lnglat.slice(1, -1).split(",");
+          var lat = parseFloat(lnglat[1]);
+          var lng = parseFloat(lnglat[0]);
+
+          if (lat > maxlat) { maxlat = lat; }
+          if (lat < minlat) { minlat = lat; }
+
+          if (lng > maxlng) { maxlng = lng; }
+          if (lng < minlng) { minlng = lng; }
+        }
+
+        var bound = new google.maps.LatLngBounds(new google.maps.LatLng(minlat, minlng), 
+                                                 new google.maps.LatLng(maxlat, maxlng));
+                                                 /*
+        console.log("minlng " + minlng);
+        console.log("maxlng " + maxlng);
+        console.log("minlat " + minlat);
+        console.log("maxlat " + maxlat);
+        */
+        imdbmap.map.fitBounds(bound);
+        if (typeof callback !== 'undefined') {
+          callback(data.results);
+        }
+      }
     });
   },
 
@@ -100,7 +152,8 @@ var imdbmap = {
                           titles: [{title: row.title, year: row.year, extra_info: extra_info}]};
       }
     }
-    console.log(im);
+//    console.log(im);
+    imdbmap.clearMarkers();
     imdbmap.plotInverseMarker(im);
   },
 
@@ -122,12 +175,20 @@ var imdbmap = {
         title: markerString
       });
 
+      imdbmap.markers.push(marker);
       imdbmap.addInfowindow(marker, loc);
     }
   },
 
+  clearMarkers: function() {
+    for (var i = 0; i < imdbmap.markers.length; i++) {
+      imdbmap.markers[i].setMap(null);
+    }
+    imdbmap.markers = [];
+  },
+
   addInfowindow: function(marker, loc) {
-    var infoboxString = "<div><h1>"+loc.address+"</h1><ul>" +
+    var infoboxString = "<div><h2>"+loc.address+"</h2><ul>" +
        loc.titles.map(function(d){
           return "<li>"+d.title+" ("+d.year+")   "+d.extra_info;
        }).join("") + "</ul></div>";
