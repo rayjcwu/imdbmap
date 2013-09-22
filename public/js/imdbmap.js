@@ -23,6 +23,12 @@ var imdbmap = {
         imdbmap.queryByTitle(imdbmap.buildInverseMap);
       }
     });
+
+    $(document).keyup(function(e){
+      if (e.keyCode == 27) {
+        imdbmap.clearInfowindow();
+      }
+    });
   },
 
   queryByTitle: function(callback) {
@@ -187,12 +193,19 @@ var imdbmap = {
     imdbmap.markers = [];
   },
 
-  addInfowindow: function(marker, loc) {
-    var infoboxString = "<div><h2>"+loc.address+"</h2><ul>" +
-       loc.titles.map(function(d){
-          return "<li>"+d.title+" ("+d.year+")   "+d.extra_info;
-       }).join("") + "</ul></div>";
+  clearInfowindow: function() {
+      for (var i = 0; i < imdbmap.infowindows.length; i++) {
+        imdbmap.infowindows[i].close();
+      }
+  },
 
+  addInfowindow: function(marker, loc) {
+    var infoboxString = '<div class="infobox"><p class="lead">'+loc.address+"</p><p><ul>" +
+       loc.titles.map(function(d){
+          return "<li>"+d.title+" ("+d.year+")   "+d.extra_info+"</li>";
+       }).join("") + "</ul></p></div>";
+
+       console.log(infoboxString);
     var infowindow = new google.maps.InfoWindow({
       content: infoboxString
     });
@@ -200,9 +213,7 @@ var imdbmap = {
     imdbmap.infowindows.push(infowindow);
 
     google.maps.event.addListener(marker, 'click', function() {
-      for (var i = 0; i < imdbmap.infowindows.length; i++) {
-        imdbmap.infowindows[i].close();
-      }
+      imdbmap.clearInfowindow();
       infowindow.open(imdbmap.map, marker);
     });
   },

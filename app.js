@@ -162,7 +162,8 @@ var queryByTitle= function(res, params) {
     var queryStr = "SELECT geo_id, loc_id, raw_address AS address, address_info, title, year, votes*rating AS popular, geo AS lnglat " +
                    "FROM huge_join " +
                    "WHERE geo IS NOT NULL " +
-                   "AND title ILIKE '%" + params.title +"%' " +
+                   "AND (title ILIKE '%" + params.title +"%' " +
+                   "OR raw_address ILIKE '%" + params.title +"%') " +
                    "ORDER BY popular DESC LIMIT "+ limit +";";
     console.log(queryStr);
     client.query(queryStr, [], function(err, result) {
