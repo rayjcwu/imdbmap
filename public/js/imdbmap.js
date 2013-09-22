@@ -1,4 +1,5 @@
 var imdbmap = {
+
   map: undefined, 
   lastInfowindow: undefined,
 
@@ -17,15 +18,19 @@ var imdbmap = {
       $("#title_search_box").val("");
       imdbmap.queryByBound(imdbmap.buildInverseMap);
     });
+
     
     $("#title_search_box").keypress(function(e){
       if (e.which === 13) {
         imdbmap.queryByTitle(imdbmap.buildInverseMap);
       }
+    }).on('click', function(){
+      $("#title_search_box").val("");
     });
 
     $(document).keyup(function(e){
       if (e.keyCode == 27) {
+        $("#info-list-inner").toggle();
         imdbmap.clearInfowindow();
       }
     });
@@ -130,6 +135,47 @@ var imdbmap = {
     }
   }, 
 
+  buildInfoList: function(results) {
+    console.log("In build info list");
+    var inverseIndex = {};
+    for (var i = 0; i < results.length; i++) {
+      var row = results[i];
+      var title = row.title + " ("+ row.year +")";
+
+      var extra_info = row.address_info;
+      if (typeof extra_info !== "string") {
+        extra_info = "";
+      }
+
+      if (inverseIndex.hasOwnProperty(title)) {
+        inverseIndex[title].locations.push({address: row.address, extra_info: extra_info});
+      } else {
+        inverseIndex[title] = {title: title, 
+                               locations: [{address: row.address, extra_info: extra_info}]};
+      }
+    }
+    console.log(inverseIndex);
+    imdbmap.plotInfoList(inverseIndex)
+  },
+
+  plotInfoList: function(inverseIndex){
+    var infolistParent = $('#info-list');
+    $("#info-list div").remove();
+    var infolist = $('<div id="info-list-inner">');
+    infolistParent.append(infolist);
+    for (var i in inverseIndex) {
+      var movie = inverseIndex[i];
+      var locations = movie['locations'];
+      infolist.append($("<h3>").text(movie.title))
+
+      var ul = $("<ul>");
+      for (var idx = 0; idx < locations.length; idx++) {
+        var addr = locations[idx].address+"    "+locations[idx].extra_info;
+        ul.append($("<li>").text(addr));
+      }
+      infolist.append(ul);
+    }
+  },
 
   /*
    * {
@@ -139,6 +185,7 @@ var imdbmap = {
    * }
    */
   buildInverseMap: function(results) {
+    imdbmap.buildInfoList(results);
     console.log("In build inverse map: " + results.length + " records");
     var im = {};
     for (var i = 0; i < results.length; i++) {
@@ -205,7 +252,7 @@ var imdbmap = {
           return "<li>"+d.title+" ("+d.year+")   "+d.extra_info+"</li>";
        }).join("") + "</ul></p></div>";
 
-       console.log(infoboxString);
+//       console.log(infoboxString);
     var infowindow = new google.maps.InfoWindow({
       content: infoboxString
     });
@@ -214,6 +261,10 @@ var imdbmap = {
 
     google.maps.event.addListener(marker, 'click', function() {
       imdbmap.clearInfowindow();
+      if (imdbmap.map.getZoom() < 10){ 
+        imdbmap.map.setZoom(11); 
+        imdbmap.map.setCenter(marker.getPosition());
+      }
       infowindow.open(imdbmap.map, marker);
     });
   },
