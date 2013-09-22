@@ -12,6 +12,10 @@ var imdbmap = {
       mapTypeId: google.maps.MapTypeId.ROADMAP
     };
     imdbmap.map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+
+    $('#location_search_btn').on('click', function(){
+      imdbmap.queryByBound(imdbmap.buildInverseMap);
+    });
   },
 
   queryByGeo: function (callback) {

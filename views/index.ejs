@@ -4,12 +4,17 @@
     <title><%= title %></title>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" type="text/css" href="/css/style.css">
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
     <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgiu-dvdFASMArVAvZt6l43vIfk4IHX2A&sensor=true"></script>
     <script type="text/javascript" src="/js/crossfilter.min.js"></script>
     <script type="text/javascript" src="/js/imdbmap.js"></script>
   </head>
   <body>
+    <div id="panel">
+      <button id="location_search_btn" class="btn btn-info">serach by location</button>
+      <input id="title_search_box" class="span3" type="text" placeholder="search by movie title">
+    </div>
     <div id="map-canvas"></div>
     <script type="text/javascript">
       $(document).ready(function(){
