@@ -5,6 +5,7 @@ var imdbmap = {
 
   markers: [],
   infowindows: [],
+  markersByTitle: {},
 
   init: function(){
     var mapOptions = {
@@ -97,7 +98,6 @@ var imdbmap = {
       limit: 100
     };
 
-//    console.log(params);
     $.get("/query/geo?" + $.param(params), function (data){
       if (data.status === 'ERROR') {
         console.error(data.description);
@@ -105,8 +105,6 @@ var imdbmap = {
       }
 
       if (data.status === 'OK') {
- //       console.log(data.results);
-
         if (typeof callback !== 'undefined') {
           callback(data.results);
         }
@@ -126,12 +124,15 @@ var imdbmap = {
       var row = results[i];
       var lnglat = row.lnglat.slice(1, -1).split(",");
 
+      var movietitle = row.title + " ("+row.year+")";
+
       var marker = new google.maps.Marker({
         map: imdbmap.map,
         animation: google.maps.Animation.DROP,
         position: new google.maps.LatLng(lnglat[1], lnglat[0]),
-        title: row.title + " ("+row.year+")"
+        title: movietitle
       });
+
     }
   }, 
 
@@ -184,7 +185,9 @@ var imdbmap = {
    *             titles: [ {title: '...', year: '...'}, .... ] },
    * }
    */
+
   buildInverseMap: function(results) {
+
     imdbmap.buildInfoList(results);
     console.log("In build inverse map: " + results.length + " records");
     var im = {};
