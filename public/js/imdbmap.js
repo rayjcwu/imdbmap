@@ -28,7 +28,7 @@ var imdbmap = {
       limit: 100
     };
 
-    console.log(params);
+//    console.log(params);
     $.get("/query/geo?" + $.param(params), function (data){
       if (data.status === 'ERROR') {
         console.error(data.description);
@@ -36,7 +36,7 @@ var imdbmap = {
       }
 
       if (data.status === 'OK') {
-        console.log(data.results);
+ //       console.log(data.results);
 
         if (typeof callback !== 'undefined') {
           callback(data.results);
@@ -57,7 +57,7 @@ var imdbmap = {
       var row = results[i];
       var lnglat = row.lnglat.slice(1, -1).split(",");
 
-      marker = new google.maps.Marker({
+      var marker = new google.maps.Marker({
         map: imdbmap.map,
         animation: google.maps.Animation.DROP,
         position: new google.maps.LatLng(lnglat[1], lnglat[0]),
@@ -65,6 +65,55 @@ var imdbmap = {
       });
     }
   }, 
+
+
+  /*
+   * {
+   *   geo_id: { address: '....',
+   *             lnglat: [lng, lat],
+   *             titles: [ {title: '...', year: '...'}, .... ] },
+   * }
+   */
+  buildInverseMap: function(results) {
+    console.log("In build inverse map: " + results.length + " records");
+    var im = {};
+    for (var i = 0; i < results.length; i++) {
+      var row = results[i];
+      var lnglat = row.lnglat.slice(1, -1).split(",");
+
+      if (im.hasOwnProperty(row.geo_id)) {
+        im[row.geo_id].titles.push({title: row.title, year: row.year});
+      } else {
+        im[row.geo_id] = {address: row.address, 
+                          lnglat: lnglat, 
+                          titles: [{title: row.title, year: row.year}] };
+      }
+    }
+    console.log(im);
+    imdbmap.plotInverseMarker(im);
+  },
+
+  plotInverseMarker: function(im) {
+    for (var loc_id in im) {
+      var point = im[loc_id];
+      var titles = point.titles;
+      var lnglat = point.lnglat;
+
+      var titles_string = [];
+      for (var i = 0; i < titles.length; ++i) {
+        var title = titles[i];
+        var title_string = title.title + ' ('+ title.year +')';
+        titles_string.push(title_string);
+      }
+
+      new google.maps.Marker({
+        map: imdbmap.map,
+        animation: google.maps.Animation.DROP,
+        position: new google.maps.LatLng(lnglat[1], lnglat[0]),
+        title:  titles_string.join("\n")
+      });
+    }
+  },
 
   queryByBound: function (callback) {
 
@@ -80,7 +129,7 @@ var imdbmap = {
       limit: 100
     };
 
-    console.log(params);
+//    console.log(params);
     $.get("/query/bound?" + $.param(params), function (data){
       if (data.status === 'ERROR') {
         console.error(data.description);
@@ -88,7 +137,7 @@ var imdbmap = {
       }
 
       if (data.status === 'OK') {
-        console.log(data.results);
+ //       console.log(data.results);
 
         if (typeof callback !== 'undefined') {
           callback(data.results);

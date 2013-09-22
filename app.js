@@ -101,8 +101,13 @@ var queryByBound= function(res, params) {
   var minlng = params.minlng;
   var maxlng = params.maxlng;
 
+  console.log(minlat);
+  console.log(maxlat);
+  console.log(minlng);
+  console.log(maxlng);
+
   var titlequery = "";
-  if (params.title !== "") {
+  if (typeof params.title !== "undefined") {
     titlequery = "AND title ILIKE '%" + params.title +"%'"
   }
 
@@ -113,7 +118,7 @@ var queryByBound= function(res, params) {
       res.json({status: 'ERROR', description: 'cannot connect to database'});
       return;
     }
-    var queryStr = "SELECT loc_id, raw_address AS address, title, year, votes*rating AS popular, geo AS lnglat " +
+    var queryStr = "SELECT geo_id, loc_id, raw_address AS address, title, year, votes*rating AS popular, geo AS lnglat " +
                    "FROM huge_join " +
                    "WHERE geo IS NOT NULL " +
                    "AND geo <@ box'(("+ minlng +","+ minlat +"),("+ maxlng +","+ maxlat +"))' "+ 
@@ -142,16 +147,7 @@ app.get('/query/bound', function(req, res) {
     res.json({status: 'ERROR', description: 'missing minlat, maxlat, minlng, maxlng'});
     return;
   }
-  var limit = query.limit || 30;
-
-  var minlat = query.minlat;
-  var maxlat = query.maxlat; 
-  var minlng = query.minlng;
-  var maxlng = query.maxlng;
-
-  var title = query.title || "";
-
-  queryByBound(res, {limit:limit, minlat: minlat, maxlat: maxlat, minlng: minlng, maxlng: maxlng, title: title});
+  queryByBound(res, query);
 });
 
 http.createServer(app).listen(app.get('port'), function(){
