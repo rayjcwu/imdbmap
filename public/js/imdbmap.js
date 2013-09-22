@@ -55,17 +55,45 @@ var imdbmap = {
   drawMarker: function(results) {
     for (var i = 0; i < results.length; i++) {
       var row = results[i];
-      var geo = row.geo.slice(1, -1).split(",");
+      var lnglat = row.lnglat.slice(1, -1).split(",");
 
       marker = new google.maps.Marker({
         map: imdbmap.map,
         animation: google.maps.Animation.DROP,
-        position: new google.maps.LatLng(geo[1], geo[0]),
+        position: new google.maps.LatLng(lnglat[1], lnglat[0]),
         title: row.title + " ("+row.year+")"
       });
     }
   }, 
 
-  crosstest: function(results) {
+  queryByBound: function (callback) {
+
+    var bounds = imdbmap.getBounds();
+    var minlng = bounds.sw.lng();
+    var maxlng = bounds.ne.lng();
+    var minlat = bounds.sw.lat();
+    var maxlat = bounds.ne.lat();
+
+    var params = {
+      minlat: minlat, maxlat: maxlat,
+      minlng: minlng, maxlng: maxlng,
+      limit: 100
+    };
+
+    console.log(params);
+    $.get("/query/bound?" + $.param(params), function (data){
+      if (data.status === 'ERROR') {
+        console.error(data.description);
+        return;
+      }
+
+      if (data.status === 'OK') {
+        console.log(data.results);
+
+        if (typeof callback !== 'undefined') {
+          callback(data.results);
+        }
+      }
+    });
   }
 };
