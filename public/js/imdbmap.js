@@ -2,6 +2,7 @@ var imdbmap = {
   map: null, 
 
   markers: [],
+  infowindows: [],
 
   init: function(){
     var mapOptions = {
@@ -81,12 +82,17 @@ var imdbmap = {
       var row = results[i];
       var lnglat = row.lnglat.slice(1, -1).split(",");
 
+      var extra_info = row.address_info;
+      if (typeof extra_info !== "string") {
+        extra_info = "";
+      }
+
       if (im.hasOwnProperty(row.geo_id)) {
-        im[row.geo_id].titles.push({title: row.title, year: row.year});
+        im[row.geo_id].titles.push({title: row.title, year: row.year, extra_info: extra_info});
       } else {
         im[row.geo_id] = {address: row.address, 
                           lnglat: lnglat, 
-                          titles: [{title: row.title, year: row.year}] };
+                          titles: [{title: row.title, year: row.year, extra_info: extra_info}]};
       }
     }
     console.log(im);
@@ -95,24 +101,39 @@ var imdbmap = {
 
   plotInverseMarker: function(im) {
     for (var loc_id in im) {
-      var point = im[loc_id];
-      var titles = point.titles;
-      var lnglat = point.lnglat;
+      var loc = im[loc_id];
+      var titles = loc.titles;
+      var lnglat = loc.lnglat;
 
-      var titles_string = [];
-      for (var i = 0; i < titles.length; ++i) {
-        var title = titles[i];
-        var title_string = title.title + ' ('+ title.year +')';
-        titles_string.push(title_string);
-      }
+      var markerString = loc.address + "\n\n" + 
+        titles.map(function(d){ 
+          return d.title + " ("+ d.year + ")"; 
+        }).join("\n");
 
-      new google.maps.Marker({
+      var marker = new google.maps.Marker({
         map: imdbmap.map,
         animation: google.maps.Animation.DROP,
         position: new google.maps.LatLng(lnglat[1], lnglat[0]),
-        title:  titles_string.join("\n")
+        title: markerString
       });
+
+      var infoboxString = "<div><h1>"+loc.address+"</h1><ul>" +
+         titles.map(function(d){
+            return "<li>"+d.title+" ("+d.year+")   "+d.extra_info;
+         }).join("") + "</ul></div>";
+
+      imdbmap.addInfowindow(marker, infoboxString);
     }
+  },
+
+  addInfowindow: function(marker, info) {
+    var infowindow = new google.maps.InfoWindow({
+      content: info
+    });
+
+    google.maps.event.addListener(marker, 'click', function() {
+      infowindow.open(imdbmap.map, marker);
+    });
   },
 
   queryByBound: function (callback) {

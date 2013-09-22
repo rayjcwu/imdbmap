@@ -118,7 +118,7 @@ var queryByBound= function(res, params) {
       res.json({status: 'ERROR', description: 'cannot connect to database'});
       return;
     }
-    var queryStr = "SELECT geo_id, loc_id, raw_address AS address, title, year, votes*rating AS popular, geo AS lnglat " +
+    var queryStr = "SELECT geo_id, loc_id, raw_address AS address, address_info, title, year, votes*rating AS popular, geo AS lnglat " +
                    "FROM huge_join " +
                    "WHERE geo IS NOT NULL " +
                    "AND geo <@ box'(("+ minlng +","+ minlat +"),("+ maxlng +","+ maxlat +"))' "+ 
