@@ -39,6 +39,11 @@ var queryByGeo = function(res, params) {
   var lng = params.lng;
   var limit = params.limit;
 
+  var minlat = params.minlat ||  -90.0;
+  var maxlat = params.maxlat ||   90.0;
+  var minlng = params.minlng || -180.0;
+  var maxlng = params.maxlng ||  180.0;
+
   var connStr = "postgres://localhost/imdb";
   pg.connect(connStr, function(err, client, done) {
     if(err) {
@@ -46,20 +51,17 @@ var queryByGeo = function(res, params) {
       res.json({status: 'ERROR', description: 'cannot connect to database'});
       return;
     }
-    var queryStr = 'SELECT raw_address AS address, title, year, geo \
-                    FROM (SELECT raw_address, \
-                            title, \
-                            year, \
-                            votes*rating AS popular, \
-                            geo, \
-                            geo<->point($1, $2) AS distance \
-                          FROM huge_join \
-                          WHERE geo IS NOT NULL \
-                          ORDER BY distance ASC \
-                          LIMIT $3 * 4) AS foo \
-                    ORDER BY popular DESC LIMIT $4;';
-
-      client.query(queryStr, [lng, lat, limit, limit], function(err, result) {
+    var queryStr = "SELECT * " +
+                   "FROM (SELECT loc_id, raw_address, title, year, votes*rating AS popular, geo, " +
+                     "geo<->point("+ lng +","+ lat +") AS distance " + 
+                     "FROM huge_join " +
+                     "WHERE geo IS NOT NULL " +
+                     "AND geo <@ box'(("+ minlng +","+ minlat +"),("+ maxlng +","+ maxlat +"))' "+ 
+                     "ORDER BY distance ASC " +
+                     "LIMIT "+ limit*20 +") AS foo " +
+                   "ORDER BY popular DESC LIMIT "+ limit +";";
+    console.log(queryStr);
+    client.query(queryStr, [], function(err, result) {
       if(err) {
         console.error('error running query', err);
         res.json({status: 'ERROR', description: 'query error'});
@@ -71,7 +73,7 @@ var queryByGeo = function(res, params) {
   });
 }
 
-app.get('/geo', function(req, res) {
+app.get('/query/geo', function(req, res) {
   var _url = url.parse(req.url, true);
   var query = _url.query;
   var lat = query.lat;
@@ -80,9 +82,14 @@ app.get('/geo', function(req, res) {
     console.error("missing lat, lng");
     res.json({status: 'ERROR', description: 'missing lat, lng'});
   }
-  var limit = query.limit || 50;
+  var limit = query.limit || 30;
 
-  queryByGeo(res, {lat: lat, lng: lng, limit:limit});
+  var minlat = query.minlat ||  -90.0;
+  var maxlat = query.maxlat ||   90.0;
+  var minlng = query.minlng || -180.0;
+  var maxlng = query.maxlng ||  180.0;
+
+  queryByGeo(res, {lat: lat, lng: lng, limit:limit, minlat: minlat, maxlat: maxlat, minlng: minlng, maxlng: maxlng});
 });
 
 http.createServer(app).listen(app.get('port'), function(){
