@@ -34,10 +34,42 @@ if ('development' == app.get('env')) {
 app.get('/', routes.index);
 app.get('/users', user.list);
 
+var queryByGeo = function(res, params) {
+  var lat = params.lat;
+  var lng = params.lng;
+  var limit = params.limit;
 
-var connStr = "postgres://localhost/imdb";
+  var connStr = "postgres://localhost/imdb";
+  pg.connect(connStr, function(err, client, done) {
+    if(err) {
+      console.error('could not connect to postgres', err);
+      res.json({status: 'ERROR', description: 'cannot connect to database'});
+      return;
+    }
+    var queryStr = 'SELECT raw_address AS address, title, year, geo \
+                    FROM (SELECT raw_address, \
+                            title, \
+                            year, \
+                            votes*rating AS popular, \
+                            geo, \
+                            geo<->point($1, $2) AS distance \
+                          FROM huge_join \
+                          WHERE geo IS NOT NULL \
+                          ORDER BY distance ASC \
+                          LIMIT $3 * 4) AS foo \
+                    ORDER BY popular DESC LIMIT $4;';
 
-var client = new pg.Client(connStr);
+      client.query(queryStr, [lng, lat, limit, limit], function(err, result) {
+      if(err) {
+        console.error('error running query', err);
+        res.json({status: 'ERROR', description: 'query error'});
+        return;
+      }
+      done();
+      res.json({status: 'OK', results: result.rows});
+    });
+  });
+}
 
 app.get('/geo', function(req, res) {
   var _url = url.parse(req.url, true);
@@ -50,37 +82,7 @@ app.get('/geo', function(req, res) {
   }
   var limit = query.limit || 50;
 
-  client.connect(function(err) {
-    if(err) {
-      console.error('could not connect to postgres', err);
-      res.json({status: 'ERROR', description: 'cannot connect to database'});
-      return;
-    }
-    client.query('SELECT raw_address AS address, title, year, geo \
-                       FROM (SELECT raw_address, \
-                              title, \
-                              year, \
-                              votes*rating AS popular, \
-                              geo, \
-                              geo<->point($1, $2) AS distance \
-                             FROM huge_join \
-                             WHERE geo IS NOT NULL \
-                             ORDER BY distance ASC \
-                             LIMIT $3 * 4) AS foo \
-                       ORDER BY popular DESC LIMIT $4;', [lng, lat, limit, limit], 
-
-                  function(err, result) {
-      if(err) {
-        console.error('error running query', err);
-        res.json({status: 'ERROR', description: 'query error'});
-        return;
-      }
-      res.json({status: 'OK', results: result.rows})
-      console.log(result);
-      client.end();
-    });
-  });
-  
+  queryByGeo(res, {lat: lat, lng: lng, limit:limit});
 });
 
 http.createServer(app).listen(app.get('port'), function(){
