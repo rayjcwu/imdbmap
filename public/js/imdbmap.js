@@ -1,5 +1,6 @@
 var imdbmap = {
-  map: null, 
+  map: undefined, 
+  lastInfowindow: undefined,
 
   markers: [],
   infowindows: [],
@@ -117,21 +118,26 @@ var imdbmap = {
         title: markerString
       });
 
-      var infoboxString = "<div><h1>"+loc.address+"</h1><ul>" +
-         titles.map(function(d){
-            return "<li>"+d.title+" ("+d.year+")   "+d.extra_info;
-         }).join("") + "</ul></div>";
-
-      imdbmap.addInfowindow(marker, infoboxString);
+      imdbmap.addInfowindow(marker, loc);
     }
   },
 
-  addInfowindow: function(marker, info) {
+  addInfowindow: function(marker, loc) {
+    var infoboxString = "<div><h1>"+loc.address+"</h1><ul>" +
+       loc.titles.map(function(d){
+          return "<li>"+d.title+" ("+d.year+")   "+d.extra_info;
+       }).join("") + "</ul></div>";
+
     var infowindow = new google.maps.InfoWindow({
-      content: info
+      content: infoboxString
     });
 
+    imdbmap.infowindows.push(infowindow);
+
     google.maps.event.addListener(marker, 'click', function() {
+      for (var i = 0; i < imdbmap.infowindows.length; i++) {
+        imdbmap.infowindows[i].close();
+      }
       infowindow.open(imdbmap.map, marker);
     });
   },
